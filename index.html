@@ -52,7 +52,10 @@
       padding: 8px;
       text-decoration: underline;
     }
-    #message { min-height: 22px; }
+    #message {
+      min-height: 22px;
+      overflow-wrap: anywhere;
+    }
     [hidden] { display: none !important; }
   </style>
 </head>
@@ -129,14 +132,8 @@
     const SUPABASE_KEY =
       "sb_publishable_R3z-VS0YebzOSCPfxs6F6Q_HLYOIRLk";
 
-    const client = window.supabase.createClient(
-      SUPABASE_URL,
-      SUPABASE_KEY
-    );
-
     const message = document.getElementById("message");
-    const loginButton = document.getElementById("loginButton");
-
+    let client;
     let recovering = false;
 
     function showSection(id) {
@@ -154,40 +151,58 @@
         user?.email || "";
     }
 
-    client.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY") {
-        recovering = true;
-        message.textContent = "";
-        showSection("newPassword");
-      } else if (!recovering) {
-        showUser(session?.user || null);
-      }
-    });
+    try {
+      client = window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_KEY
+      );
 
-    client.auth.getUser().then(({ data, error }) => {
-      if (!error && !recovering) {
-        showUser(data.user);
-      }
-    });
+      client.auth.onAuthStateChange((event, session) => {
+        if (event === "PASSWORD_RECOVERY") {
+          recovering = true;
+          message.textContent = "";
+          showSection("newPassword");
+        } else if (!recovering) {
+          showUser(session?.user || null);
+        }
+      });
+
+      client.auth.getUser().then(({ data, error }) => {
+        if (!error && !recovering) showUser(data.user);
+      });
+    } catch (error) {
+      message.textContent =
+        "Errore di configurazione: " + error.message;
+    }
 
     document.getElementById("loginForm")
       .addEventListener("submit", async event => {
         event.preventDefault();
-        loginButton.disabled = true;
+        if (!client) return;
+
+        const button =
+          document.getElementById("loginButton");
+        button.disabled = true;
         message.textContent = "Accesso in corso...";
 
-        const { error } =
-          await client.auth.signInWithPassword({
-            email: document.getElementById("email").value,
-            password:
-              document.getElementById("password").value
-          });
+        try {
+          const { error } =
+            await client.auth.signInWithPassword({
+              email:
+                document.getElementById("email").value,
+              password:
+                document.getElementById("password").value
+            });
 
-        message.textContent = error
-          ? "Email o password non corretta."
-          : "";
-
-        loginButton.disabled = false;
+          message.textContent = error
+            ? "Errore di accesso: " + error.message
+            : "";
+        } catch (error) {
+          message.textContent =
+            "Errore di connessione: " + error.message;
+        } finally {
+          button.disabled = false;
+        }
       });
 
     document.getElementById("forgotButton")
@@ -207,60 +222,72 @@
     document.getElementById("recoveryForm")
       .addEventListener("submit", async event => {
         event.preventDefault();
+        if (!client) return;
 
         const button =
           document.getElementById("recoveryButton");
         button.disabled = true;
         message.textContent = "Invio in corso...";
 
-        const { error } =
-          await client.auth.resetPasswordForEmail(
-            document.getElementById("recoveryEmail").value,
-            {
-              redirectTo:
-                "https://methodlab-cloud.vercel.app/"
-            }
-          );
+        try {
+          const { error } =
+            await client.auth.resetPasswordForEmail(
+              document.getElementById("recoveryEmail").value,
+              {
+                redirectTo:
+                  "https://methodlab-cloud.vercel.app/"
+              }
+            );
 
-        message.textContent = error
-          ? "Invio non riuscito. Riprova più tardi."
-          : "Se l'account esiste, riceverai un'email con il link per reimpostare la password.";
-
-        button.disabled = false;
+          message.textContent = error
+            ? "Errore Supabase: " + error.message
+            : "Se l'account esiste, riceverai un'email con il link per reimpostare la password.";
+        } catch (error) {
+          message.textContent =
+            "Errore di connessione: " + error.message;
+        } finally {
+          button.disabled = false;
+        }
       });
 
     document.getElementById("passwordForm")
       .addEventListener("submit", async event => {
         event.preventDefault();
+        if (!client) return;
 
         const button =
           document.getElementById("savePasswordButton");
         button.disabled = true;
         message.textContent = "Salvataggio in corso...";
 
-        const { error } =
-          await client.auth.updateUser({
-            password:
-              document.getElementById("newPasswordInput").value
-          });
+        try {
+          const { error } =
+            await client.auth.updateUser({
+              password:
+                document.getElementById("newPasswordInput").value
+            });
 
-        if (error) {
+          if (error) {
+            message.textContent =
+              "Errore: " + error.message;
+          } else {
+            recovering = false;
+            await client.auth.signOut();
+            showSection("login");
+            message.textContent =
+              "Password aggiornata. Ora puoi accedere.";
+          }
+        } catch (error) {
           message.textContent =
-            "Impossibile aggiornare la password: " +
-            error.message;
-        } else {
-          recovering = false;
-          await client.auth.signOut();
-          showSection("login");
-          message.textContent =
-            "Password aggiornata. Ora puoi accedere.";
+            "Errore di connessione: " + error.message;
+        } finally {
+          button.disabled = false;
         }
-
-        button.disabled = false;
       });
 
     document.getElementById("logoutButton")
       .addEventListener("click", async () => {
+        if (!client) return;
         await client.auth.signOut();
         showSection("login");
         message.textContent = "";
