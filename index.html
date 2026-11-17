@@ -5,90 +5,274 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>MethodLab Cloud</title>
+
   <style>
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
       min-height: 100vh;
       background: #101827;
-      color: white;
+      color: #ffffff;
       font-family: Arial, sans-serif;
+      padding: 24px;
+    }
+
+    body.login-mode {
       display: grid;
       place-items: center;
-      padding: 20px;
     }
+
     .card {
       width: 100%;
       max-width: 460px;
+      margin: auto;
       background: #1d2939;
       padding: 32px;
       border-radius: 16px;
     }
-    h1 { margin-top: 0; }
-    p { color: #b9c5d7; }
-    input, button {
+
+    .card.dashboard {
+      max-width: 1050px;
+      margin: 20px auto;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    p {
+      color: #b9c5d7;
+    }
+
+    input,
+    button {
+      font: inherit;
+      border-radius: 8px;
+    }
+
+    input {
       display: block;
       width: 100%;
       padding: 13px;
       margin: 12px 0;
-      border-radius: 8px;
-      font-size: 16px;
-    }
-    input {
       border: 1px solid #718096;
       background: white;
       color: #101827;
     }
+
     button {
+      padding: 13px 18px;
       background: #16a34a;
       color: white;
       border: 0;
       cursor: pointer;
     }
-    button:disabled { opacity: .6; }
+
+    button:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+    }
+
+    .full-button {
+      display: block;
+      width: 100%;
+      margin: 12px 0;
+    }
+
     .link {
+      display: block;
+      width: 100%;
       background: transparent;
       color: #93c5fd;
       padding: 8px;
       text-decoration: underline;
     }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    .topbar h1 {
+      font-size: 26px;
+    }
+
+    .topbar p {
+      margin: 0;
+    }
+
+    .logout {
+      background: #334155;
+    }
+
+    .team-box {
+      background: #101827;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .team-box h2 {
+      margin: 8px 0;
+    }
+
+    .eyebrow {
+      color: #93c5fd;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .role {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 6px 10px;
+      background: #14532d;
+      border-radius: 20px;
+      font-size: 13px;
+    }
+
+    .modules {
+      display: grid;
+      grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .module {
+      display: block;
+      width: 100%;
+      min-height: 150px;
+      padding: 20px;
+      background: #273449;
+      text-align: left;
+      border: 1px solid #41516a;
+      transition: background .2s;
+    }
+
+    .module:hover {
+      background: #34465f;
+    }
+
+    .module-icon {
+      display: block;
+      font-size: 30px;
+      margin-bottom: 12px;
+    }
+
+    .module-title {
+      display: block;
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .module-desc {
+      display: block;
+      font-size: 13px;
+      color: #b9c5d7;
+    }
+
+    .panel {
+      margin-top: 24px;
+      padding: 24px;
+      background: #101827;
+      border-radius: 12px;
+    }
+
+    .panel h2 {
+      margin-bottom: 10px;
+    }
+
     #message {
       min-height: 22px;
       overflow-wrap: anywhere;
     }
-    .team {
-      padding: 14px;
+
+    .status {
+      color: #b9c5d7;
       margin: 12px 0;
-      background: #101827;
-      border-radius: 10px;
     }
-    .team strong {
-      display: block;
-      margin-bottom: 6px;
+
+    [hidden] {
+      display: none !important;
     }
-    .team small { color: #b9c5d7; }
-    [hidden] { display: none !important; }
+
+    @media (max-width: 760px) {
+      .modules {
+        grid-template-columns:
+          repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 12px;
+      }
+
+      .card {
+        padding: 22px;
+      }
+
+      .modules {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
-<body>
-  <main class="card">
-    <h1>MethodLab Cloud</h1>
-    <p>Accesso riservato allo staff tecnico</p>
+
+<body class="login-mode">
+
+  <main id="mainCard" class="card">
+
+    <section id="authHeader">
+      <h1>MethodLab Cloud</h1>
+      <p>Accesso riservato allo staff tecnico</p>
+    </section>
 
     <section id="login">
       <form id="loginForm">
-        <input id="email" type="email"
-          placeholder="Email" required
-          autocomplete="email">
-        <input id="password" type="password"
-          placeholder="Password" required
-          autocomplete="current-password">
-        <button id="loginButton" type="submit">
+        <input
+          id="email"
+          type="email"
+          placeholder="Email"
+          autocomplete="email"
+          required
+        >
+
+        <input
+          id="password"
+          type="password"
+          placeholder="Password"
+          autocomplete="current-password"
+          required
+        >
+
+        <button
+          id="loginButton"
+          class="full-button"
+          type="submit"
+        >
           Accedi
         </button>
       </form>
-      <button class="link" id="forgotButton"
-        type="button">
+
+      <button
+        id="forgotButton"
+        class="link"
+        type="button"
+      >
         Password dimenticata?
       </button>
     </section>
@@ -96,49 +280,209 @@
     <section id="recovery" hidden>
       <h2>Recupera password</h2>
       <p>Inserisci l'email del tuo account.</p>
+
       <form id="recoveryForm">
-        <input id="recoveryEmail" type="email"
-          placeholder="Email" required>
-        <button id="recoveryButton" type="submit">
+        <input
+          id="recoveryEmail"
+          type="email"
+          placeholder="Email"
+          required
+        >
+
+        <button
+          id="recoveryButton"
+          class="full-button"
+          type="submit"
+        >
           Invia email di recupero
         </button>
       </form>
-      <button class="link" id="backButton"
-        type="button">
+
+      <button
+        id="backButton"
+        class="link"
+        type="button"
+      >
         Torna al login
       </button>
     </section>
 
     <section id="newPassword" hidden>
       <h2>Imposta nuova password</h2>
+
       <form id="passwordForm">
-        <input id="newPasswordInput"
+        <input
+          id="newPasswordInput"
           type="password"
           placeholder="Nuova password"
-          minlength="12" required
-          autocomplete="new-password">
-        <button id="savePasswordButton" type="submit">
+          minlength="12"
+          autocomplete="new-password"
+          required
+        >
+
+        <button
+          id="savePasswordButton"
+          class="full-button"
+          type="submit"
+        >
           Salva nuova password
         </button>
       </form>
     </section>
 
     <section id="account" hidden>
-      <h2>Accesso effettuato</h2>
-      <p id="userEmail"></p>
-      <p id="teamsStatus">
-        Caricamento delle squadre...
+
+      <header class="topbar">
+        <div>
+          <h1>MethodLab Cloud</h1>
+          <p>Area staff tecnico</p>
+        </div>
+
+        <button
+          id="logoutButton"
+          class="logout"
+          type="button"
+        >
+          Esci
+        </button>
+      </header>
+
+      <div class="team-box">
+        <span class="eyebrow">
+          Squadra attiva
+        </span>
+
+        <h2 id="teamName">
+          Caricamento...
+        </h2>
+
+        <p id="userEmail"></p>
+
+        <span id="userRole" class="role" hidden>
+        </span>
+      </div>
+
+      <p id="teamsStatus" class="status">
+        Caricamento della squadra...
       </p>
-      <div id="teamsList"></div>
-      <button id="logoutButton" type="button">
-        Esci
-      </button>
+
+      <div id="dashboardContent" hidden>
+
+        <h2>Dashboard principale</h2>
+        <p>
+          Seleziona una sezione per iniziare.
+        </p>
+
+        <div class="modules">
+
+          <button
+            class="module"
+            type="button"
+            data-module="Giocatori"
+          >
+            <span class="module-icon">👥</span>
+            <span class="module-title">
+              Giocatori
+            </span>
+            <span class="module-desc">
+              Rosa e schede individuali
+            </span>
+          </button>
+
+          <button
+            class="module"
+            type="button"
+            data-module="Allenamenti"
+          >
+            <span class="module-icon">📅</span>
+            <span class="module-title">
+              Allenamenti
+            </span>
+            <span class="module-desc">
+              Sedute e programmazione
+            </span>
+          </button>
+
+          <button
+            class="module"
+            type="button"
+            data-module="Valutazioni"
+          >
+            <span class="module-icon">📋</span>
+            <span class="module-title">
+              Valutazioni
+            </span>
+            <span class="module-desc">
+              Analisi tecniche dei giocatori
+            </span>
+          </button>
+
+          <button
+            class="module"
+            type="button"
+            data-module="Report"
+          >
+            <span class="module-icon">📊</span>
+            <span class="module-title">
+              Report
+            </span>
+            <span class="module-desc">
+              Dati e statistiche
+            </span>
+          </button>
+
+          <button
+            class="module"
+            type="button"
+            data-module="Staff"
+          >
+            <span class="module-icon">🧑‍💼</span>
+            <span class="module-title">
+              Staff
+            </span>
+            <span class="module-desc">
+              Collaboratori e ruoli
+            </span>
+          </button>
+
+          <button
+            class="module"
+            type="button"
+            data-module="Impostazioni"
+          >
+            <span class="module-icon">⚙️</span>
+            <span class="module-title">
+              Impostazioni
+            </span>
+            <span class="module-desc">
+              Gestione della squadra
+            </span>
+          </button>
+
+        </div>
+
+        <div id="modulePanel" class="panel" hidden>
+          <h2 id="modulePanelTitle"></h2>
+          <p>
+            Questa sezione è in preparazione.
+          </p>
+          <button
+            id="backDashboardButton"
+            type="button"
+          >
+            Torna alla dashboard
+          </button>
+        </div>
+
+      </div>
     </section>
 
     <p id="message" role="status"></p>
+
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
   <script>
     const SUPABASE_URL =
       "https://vygxyzpncwkwnwygifql.supabase.co";
@@ -146,11 +490,14 @@
     const SUPABASE_KEY =
       "sb_publishable_R3z-VS0YebzOSCPfxs6F6Q_HLYOIRLk";
 
-    const message = document.getElementById("message");
+    const message =
+      document.getElementById("message");
+
     const teamsStatus =
       document.getElementById("teamsStatus");
-    const teamsList =
-      document.getElementById("teamsList");
+
+    const dashboardContent =
+      document.getElementById("dashboardContent");
 
     let client;
     let recovering = false;
@@ -158,19 +505,61 @@
     let requestNumber = 0;
 
     function showSection(id) {
-      ["login", "recovery", "newPassword", "account"]
-        .forEach(section => {
-          document.getElementById(section).hidden =
-            section !== id;
+      [
+        "login",
+        "recovery",
+        "newPassword",
+        "account"
+      ].forEach(section => {
+        document.getElementById(section).hidden =
+          section !== id;
+      });
+
+      const isAccount = id === "account";
+
+      document.body.classList.toggle(
+        "login-mode",
+        !isAccount
+      );
+
+      document.getElementById("mainCard")
+        .classList.toggle(
+          "dashboard",
+          isAccount
+        );
+
+      document.getElementById("authHeader").hidden =
+        isAccount;
+    }
+
+    function resetDashboard() {
+      document.getElementById("teamName")
+        .textContent = "Caricamento...";
+
+      document.getElementById("userRole")
+        .textContent = "";
+
+      document.getElementById("userRole")
+        .hidden = true;
+
+      dashboardContent.hidden = true;
+
+      document.getElementById("modulePanel")
+        .hidden = true;
+
+      document.querySelectorAll(".module")
+        .forEach(button => {
+          button.hidden = false;
         });
     }
 
-    async function loadTeams(userId) {
+    async function loadTeam(userId) {
       const currentRequest = ++requestNumber;
 
-      teamsList.replaceChildren();
+      resetDashboard();
+
       teamsStatus.textContent =
-        "Caricamento delle squadre...";
+        "Caricamento della squadra...";
 
       try {
         const {
@@ -181,7 +570,9 @@
           .select("team_id, role")
           .eq("user_id", userId);
 
-        if (membershipError) throw membershipError;
+        if (membershipError) {
+          throw membershipError;
+        }
 
         if (
           currentRequest !== requestNumber ||
@@ -189,16 +580,19 @@
           recovering
         ) return;
 
-        if (!memberships || memberships.length === 0) {
+        if (
+          !memberships ||
+          memberships.length === 0
+        ) {
           teamsStatus.textContent =
             "Nessuna squadra associata al tuo account.";
           return;
         }
 
-        const ids = [
+        const teamIds = [
           ...new Set(
             memberships
-              .map(m => m.team_id)
+              .map(item => item.team_id)
               .filter(Boolean)
           )
         ];
@@ -209,9 +603,11 @@
         } = await client
           .from("teams")
           .select("id, name")
-          .in("id", ids);
+          .in("id", teamIds);
 
-        if (teamsError) throw teamsError;
+        if (teamsError) {
+          throw teamsError;
+        }
 
         if (
           currentRequest !== requestNumber ||
@@ -220,33 +616,42 @@
         ) return;
 
         const teamById = new Map(
-          (teams || []).map(t => [t.id, t])
+          (teams || []).map(team => [
+            team.id,
+            team
+          ])
         );
 
-        let shown = 0;
+        const availableMembership =
+          memberships.find(item =>
+            teamById.has(item.team_id)
+          );
 
-        for (const membership of memberships) {
-          const team = teamById.get(membership.team_id);
-          if (!team) continue;
-
-          const item = document.createElement("div");
-          item.className = "team";
-
-          const title = document.createElement("strong");
-          title.textContent = team.name;
-
-          const role = document.createElement("small");
-          role.textContent =
-            "Ruolo: " + membership.role;
-
-          item.append(title, role);
-          teamsList.append(item);
-          shown++;
+        if (!availableMembership) {
+          teamsStatus.textContent =
+            "Nessuna squadra visibile. Verifica i permessi Supabase.";
+          return;
         }
 
-        teamsStatus.textContent = shown
-          ? "Le tue squadre:"
-          : "Le squadre associate non sono visibili. Verifica i permessi Supabase.";
+        const selectedTeam =
+          teamById.get(
+            availableMembership.team_id
+          );
+
+        document.getElementById("teamName")
+          .textContent = selectedTeam.name;
+
+        const roleElement =
+          document.getElementById("userRole");
+
+        roleElement.textContent =
+          "Ruolo: " + availableMembership.role;
+
+        roleElement.hidden = false;
+
+        teamsStatus.textContent = "";
+
+        dashboardContent.hidden = false;
 
       } catch (error) {
         if (
@@ -256,7 +661,7 @@
         ) return;
 
         teamsStatus.textContent =
-          "Impossibile caricare le squadre: " +
+          "Impossibile caricare la squadra: " +
           error.message;
       }
     }
@@ -266,22 +671,65 @@
 
       const userId = user?.id || null;
 
-      showSection(user ? "account" : "login");
+      showSection(
+        user ? "account" : "login"
+      );
 
-      document.getElementById("userEmail").textContent =
-        user?.email || "";
+      document.getElementById("userEmail")
+        .textContent = user?.email || "";
 
       if (userId !== activeUserId) {
         activeUserId = userId;
         ++requestNumber;
 
-        teamsList.replaceChildren();
+        resetDashboard();
 
-        if (userId) loadTeams(userId);
+        if (userId) {
+          loadTeam(userId);
+        }
       }
 
-      if (!userId) teamsStatus.textContent = "";
+      if (!userId) {
+        teamsStatus.textContent = "";
+      }
     }
+
+    function openModule(name) {
+      document.getElementById("modulePanelTitle")
+        .textContent = name;
+
+      document.getElementById("modulePanel")
+        .hidden = false;
+
+      document.querySelectorAll(".module")
+        .forEach(button => {
+          button.hidden = true;
+        });
+
+      document.getElementById("modulePanel")
+        .scrollIntoView({
+          behavior: "smooth",
+          block: "nearest"
+        });
+    }
+
+    document.querySelectorAll(".module")
+      .forEach(button => {
+        button.addEventListener("click", () => {
+          openModule(button.dataset.module);
+        });
+      });
+
+    document.getElementById("backDashboardButton")
+      .addEventListener("click", () => {
+        document.getElementById("modulePanel")
+          .hidden = true;
+
+        document.querySelectorAll(".module")
+          .forEach(button => {
+            button.hidden = false;
+          });
+      });
 
     try {
       if (!window.supabase) {
@@ -295,16 +743,18 @@
         SUPABASE_KEY
       );
 
-      client.auth.onAuthStateChange((event, session) => {
-        if (event === "PASSWORD_RECOVERY") {
-          recovering = true;
-          ++requestNumber;
-          message.textContent = "";
-          showSection("newPassword");
-        } else if (!recovering) {
-          showUser(session?.user || null);
+      client.auth.onAuthStateChange(
+        (event, session) => {
+          if (event === "PASSWORD_RECOVERY") {
+            recovering = true;
+            ++requestNumber;
+            message.textContent = "";
+            showSection("newPassword");
+          } else if (!recovering) {
+            showUser(session?.user || null);
+          }
         }
-      });
+      );
 
       client.auth.getUser()
         .then(({ data, error }) => {
@@ -314,15 +764,17 @@
         })
         .catch(error => {
           message.textContent =
-            "Errore di connessione: " + error.message;
+            "Errore di connessione: " +
+            error.message;
         });
 
     } catch (error) {
       message.textContent =
-        "Errore di configurazione: " + error.message;
+        "Errore di configurazione: " +
+        error.message;
 
-      document.getElementById("loginButton").disabled =
-        true;
+      document.getElementById("loginButton")
+        .disabled = true;
     }
 
     document.getElementById("loginForm")
@@ -334,7 +786,8 @@
           document.getElementById("loginButton");
 
         button.disabled = true;
-        message.textContent = "Accesso in corso...";
+        message.textContent =
+          "Accesso in corso...";
 
         try {
           const { error } =
@@ -346,12 +799,14 @@
             });
 
           message.textContent = error
-            ? "Errore di accesso: " + error.message
+            ? "Errore di accesso: " +
+              error.message
             : "";
 
         } catch (error) {
           message.textContent =
-            "Errore di connessione: " + error.message;
+            "Errore di connessione: " +
+            error.message;
         } finally {
           button.disabled = false;
         }
@@ -359,7 +814,8 @@
 
     document.getElementById("forgotButton")
       .addEventListener("click", () => {
-        document.getElementById("recoveryEmail").value =
+        document.getElementById("recoveryEmail")
+          .value =
           document.getElementById("email").value;
 
         message.textContent = "";
@@ -381,12 +837,15 @@
           document.getElementById("recoveryButton");
 
         button.disabled = true;
-        message.textContent = "Invio in corso...";
+        message.textContent =
+          "Invio in corso...";
 
         try {
           const { error } =
             await client.auth.resetPasswordForEmail(
-              document.getElementById("recoveryEmail").value,
+              document.getElementById(
+                "recoveryEmail"
+              ).value,
               {
                 redirectTo:
                   "https://methodlab-cloud.vercel.app/"
@@ -394,12 +853,14 @@
             );
 
           message.textContent = error
-            ? "Errore Supabase: " + error.message
+            ? "Errore Supabase: " +
+              error.message
             : "Se l'account esiste, riceverai un'email con il link per reimpostare la password.";
 
         } catch (error) {
           message.textContent =
-            "Errore di connessione: " + error.message;
+            "Errore di connessione: " +
+            error.message;
         } finally {
           button.disabled = false;
         }
@@ -411,16 +872,21 @@
         if (!client) return;
 
         const button =
-          document.getElementById("savePasswordButton");
+          document.getElementById(
+            "savePasswordButton"
+          );
 
         button.disabled = true;
-        message.textContent = "Salvataggio in corso...";
+        message.textContent =
+          "Salvataggio in corso...";
 
         try {
           const { error } =
             await client.auth.updateUser({
               password:
-                document.getElementById("newPasswordInput").value
+                document.getElementById(
+                  "newPasswordInput"
+                ).value
             });
 
           if (error) {
@@ -428,19 +894,23 @@
               "Errore: " + error.message;
           } else {
             recovering = false;
+
             await client.auth.signOut();
 
             activeUserId = null;
             ++requestNumber;
 
+            resetDashboard();
             showSection("login");
+
             message.textContent =
               "Password aggiornata. Ora puoi accedere.";
           }
 
         } catch (error) {
           message.textContent =
-            "Errore di connessione: " + error.message;
+            "Errore di connessione: " +
+            error.message;
         } finally {
           button.disabled = false;
         }
@@ -461,9 +931,11 @@
 
         } catch (error) {
           message.textContent =
-            "Errore durante l'uscita: " + error.message;
+            "Errore durante l'uscita: " +
+            error.message;
         }
       });
+
   </script>
 </body>
 </html>
