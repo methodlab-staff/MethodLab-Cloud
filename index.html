@@ -19,7 +19,7 @@
     }
     .card {
       width: 100%;
-      max-width: 420px;
+      max-width: 460px;
       background: #1d2939;
       padding: 32px;
       border-radius: 16px;
@@ -56,6 +56,17 @@
       min-height: 22px;
       overflow-wrap: anywhere;
     }
+    .team {
+      padding: 14px;
+      margin: 12px 0;
+      background: #101827;
+      border-radius: 10px;
+    }
+    .team strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+    .team small { color: #b9c5d7; }
     [hidden] { display: none !important; }
   </style>
 </head>
@@ -115,7 +126,10 @@
     <section id="account" hidden>
       <h2>Accesso effettuato</h2>
       <p id="userEmail"></p>
-      <p>Configurazione dello staff in corso.</p>
+      <p id="teamsStatus">
+        Caricamento delle squadre...
+      </p>
+      <div id="teamsList"></div>
       <button id="logoutButton" type="button">
         Esci
       </button>
@@ -133,8 +147,15 @@
       "sb_publishable_R3z-VS0YebzOSCPfxs6F6Q_HLYOIRLk";
 
     const message = document.getElementById("message");
+    const teamsStatus =
+      document.getElementById("teamsStatus");
+    const teamsList =
+      document.getElementById("teamsList");
+
     let client;
     let recovering = false;
+    let activeUserId = null;
+    let requestNumber = 0;
 
     function showSection(id) {
       ["login", "recovery", "newPassword", "account"]
@@ -144,14 +165,131 @@
         });
     }
 
+    async function loadTeams(userId) {
+      const currentRequest = ++requestNumber;
+
+      teamsList.replaceChildren();
+      teamsStatus.textContent =
+        "Caricamento delle squadre...";
+
+      try {
+        const {
+          data: memberships,
+          error: membershipError
+        } = await client
+          .from("memberships")
+          .select("team_id, role")
+          .eq("user_id", userId);
+
+        if (membershipError) throw membershipError;
+
+        if (
+          currentRequest !== requestNumber ||
+          activeUserId !== userId ||
+          recovering
+        ) return;
+
+        if (!memberships || memberships.length === 0) {
+          teamsStatus.textContent =
+            "Nessuna squadra associata al tuo account.";
+          return;
+        }
+
+        const ids = [
+          ...new Set(
+            memberships
+              .map(m => m.team_id)
+              .filter(Boolean)
+          )
+        ];
+
+        const {
+          data: teams,
+          error: teamsError
+        } = await client
+          .from("teams")
+          .select("id, name")
+          .in("id", ids);
+
+        if (teamsError) throw teamsError;
+
+        if (
+          currentRequest !== requestNumber ||
+          activeUserId !== userId ||
+          recovering
+        ) return;
+
+        const teamById = new Map(
+          (teams || []).map(t => [t.id, t])
+        );
+
+        let shown = 0;
+
+        for (const membership of memberships) {
+          const team = teamById.get(membership.team_id);
+          if (!team) continue;
+
+          const item = document.createElement("div");
+          item.className = "team";
+
+          const title = document.createElement("strong");
+          title.textContent = team.name;
+
+          const role = document.createElement("small");
+          role.textContent =
+            "Ruolo: " + membership.role;
+
+          item.append(title, role);
+          teamsList.append(item);
+          shown++;
+        }
+
+        teamsStatus.textContent = shown
+          ? "Le tue squadre:"
+          : "Le squadre associate non sono visibili. Verifica i permessi Supabase.";
+
+      } catch (error) {
+        if (
+          currentRequest !== requestNumber ||
+          activeUserId !== userId ||
+          recovering
+        ) return;
+
+        teamsStatus.textContent =
+          "Impossibile caricare le squadre: " +
+          error.message;
+      }
+    }
+
     function showUser(user) {
       if (recovering) return;
+
+      const userId = user?.id || null;
+
       showSection(user ? "account" : "login");
+
       document.getElementById("userEmail").textContent =
         user?.email || "";
+
+      if (userId !== activeUserId) {
+        activeUserId = userId;
+        ++requestNumber;
+
+        teamsList.replaceChildren();
+
+        if (userId) loadTeams(userId);
+      }
+
+      if (!userId) teamsStatus.textContent = "";
     }
 
     try {
+      if (!window.supabase) {
+        throw new Error(
+          "Libreria Supabase non disponibile."
+        );
+      }
+
       client = window.supabase.createClient(
         SUPABASE_URL,
         SUPABASE_KEY
@@ -160,6 +298,7 @@
       client.auth.onAuthStateChange((event, session) => {
         if (event === "PASSWORD_RECOVERY") {
           recovering = true;
+          ++requestNumber;
           message.textContent = "";
           showSection("newPassword");
         } else if (!recovering) {
@@ -167,12 +306,23 @@
         }
       });
 
-      client.auth.getUser().then(({ data, error }) => {
-        if (!error && !recovering) showUser(data.user);
-      });
+      client.auth.getUser()
+        .then(({ data, error }) => {
+          if (!error && !recovering) {
+            showUser(data.user);
+          }
+        })
+        .catch(error => {
+          message.textContent =
+            "Errore di connessione: " + error.message;
+        });
+
     } catch (error) {
       message.textContent =
         "Errore di configurazione: " + error.message;
+
+      document.getElementById("loginButton").disabled =
+        true;
     }
 
     document.getElementById("loginForm")
@@ -182,6 +332,7 @@
 
         const button =
           document.getElementById("loginButton");
+
         button.disabled = true;
         message.textContent = "Accesso in corso...";
 
@@ -197,6 +348,7 @@
           message.textContent = error
             ? "Errore di accesso: " + error.message
             : "";
+
         } catch (error) {
           message.textContent =
             "Errore di connessione: " + error.message;
@@ -209,6 +361,7 @@
       .addEventListener("click", () => {
         document.getElementById("recoveryEmail").value =
           document.getElementById("email").value;
+
         message.textContent = "";
         showSection("recovery");
       });
@@ -226,6 +379,7 @@
 
         const button =
           document.getElementById("recoveryButton");
+
         button.disabled = true;
         message.textContent = "Invio in corso...";
 
@@ -242,6 +396,7 @@
           message.textContent = error
             ? "Errore Supabase: " + error.message
             : "Se l'account esiste, riceverai un'email con il link per reimpostare la password.";
+
         } catch (error) {
           message.textContent =
             "Errore di connessione: " + error.message;
@@ -257,6 +412,7 @@
 
         const button =
           document.getElementById("savePasswordButton");
+
         button.disabled = true;
         message.textContent = "Salvataggio in corso...";
 
@@ -273,10 +429,15 @@
           } else {
             recovering = false;
             await client.auth.signOut();
+
+            activeUserId = null;
+            ++requestNumber;
+
             showSection("login");
             message.textContent =
               "Password aggiornata. Ora puoi accedere.";
           }
+
         } catch (error) {
           message.textContent =
             "Errore di connessione: " + error.message;
@@ -288,9 +449,20 @@
     document.getElementById("logoutButton")
       .addEventListener("click", async () => {
         if (!client) return;
-        await client.auth.signOut();
-        showSection("login");
-        message.textContent = "";
+
+        try {
+          const { error } =
+            await client.auth.signOut();
+
+          if (error) throw error;
+
+          showUser(null);
+          message.textContent = "";
+
+        } catch (error) {
+          message.textContent =
+            "Errore durante l'uscita: " + error.message;
+        }
       });
   </script>
 </body>
