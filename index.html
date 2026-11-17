@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MethodLab Cloud - Accesso</title>
+  <title>MethodLab Cloud</title>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -34,7 +34,11 @@
       border-radius: 8px;
       font-size: 16px;
     }
-    input { border: 1px solid #718096; }
+    input {
+      border: 1px solid #718096;
+      background: white;
+      color: #101827;
+    }
     button {
       background: #16a34a;
       color: white;
@@ -42,6 +46,12 @@
       cursor: pointer;
     }
     button:disabled { opacity: .6; }
+    .link {
+      background: transparent;
+      color: #93c5fd;
+      padding: 8px;
+      text-decoration: underline;
+    }
     #message { min-height: 22px; }
     [hidden] { display: none !important; }
   </style>
@@ -54,12 +64,47 @@
     <section id="login">
       <form id="loginForm">
         <input id="email" type="email"
-          placeholder="Email" required autocomplete="email">
+          placeholder="Email" required
+          autocomplete="email">
         <input id="password" type="password"
           placeholder="Password" required
           autocomplete="current-password">
         <button id="loginButton" type="submit">
           Accedi
+        </button>
+      </form>
+      <button class="link" id="forgotButton"
+        type="button">
+        Password dimenticata?
+      </button>
+    </section>
+
+    <section id="recovery" hidden>
+      <h2>Recupera password</h2>
+      <p>Inserisci l'email del tuo account.</p>
+      <form id="recoveryForm">
+        <input id="recoveryEmail" type="email"
+          placeholder="Email" required>
+        <button id="recoveryButton" type="submit">
+          Invia email di recupero
+        </button>
+      </form>
+      <button class="link" id="backButton"
+        type="button">
+        Torna al login
+      </button>
+    </section>
+
+    <section id="newPassword" hidden>
+      <h2>Imposta nuova password</h2>
+      <form id="passwordForm">
+        <input id="newPasswordInput"
+          type="password"
+          placeholder="Nuova password"
+          minlength="12" required
+          autocomplete="new-password">
+        <button id="savePasswordButton" type="submit">
+          Salva nuova password
         </button>
       </form>
     </section>
@@ -68,7 +113,9 @@
       <h2>Accesso effettuato</h2>
       <p id="userEmail"></p>
       <p>Configurazione dello staff in corso.</p>
-      <button id="logoutButton">Esci</button>
+      <button id="logoutButton" type="button">
+        Esci
+      </button>
     </section>
 
     <p id="message" role="status"></p>
@@ -82,59 +129,140 @@
     const SUPABASE_KEY =
       "sb_publishable_R3z-VS0YebzOSCPfxs6F6Q_HLYOIRLk";
 
-    const message = document.getElementById("message");
-    const login = document.getElementById("login");
-    const account = document.getElementById("account");
-    const loginButton = document.getElementById("loginButton");
-
     const client = window.supabase.createClient(
       SUPABASE_URL,
       SUPABASE_KEY
     );
 
-    function showUser(user) {
-      login.hidden = !!user;
-      account.hidden = !user;
-      document.getElementById("userEmail").textContent =
-        user ? user.email : "";
+    const message = document.getElementById("message");
+    const loginButton = document.getElementById("loginButton");
+
+    let recovering = false;
+
+    function showSection(id) {
+      ["login", "recovery", "newPassword", "account"]
+        .forEach(section => {
+          document.getElementById(section).hidden =
+            section !== id;
+        });
     }
 
-    client.auth.getUser().then(({ data, error }) => {
-      if (!error) showUser(data.user);
+    function showUser(user) {
+      if (recovering) return;
+      showSection(user ? "account" : "login");
+      document.getElementById("userEmail").textContent =
+        user?.email || "";
+    }
+
+    client.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") {
+        recovering = true;
+        message.textContent = "";
+        showSection("newPassword");
+      } else if (!recovering) {
+        showUser(session?.user || null);
+      }
     });
 
-    client.auth.onAuthStateChange((_event, session) => {
-      showUser(session?.user || null);
+    client.auth.getUser().then(({ data, error }) => {
+      if (!error && !recovering) {
+        showUser(data.user);
+      }
     });
 
     document.getElementById("loginForm")
-      .addEventListener("submit", async (event) => {
+      .addEventListener("submit", async event => {
         event.preventDefault();
-
         loginButton.disabled = true;
         message.textContent = "Accesso in corso...";
 
-        const email = document.getElementById("email").value;
-        const password =
-          document.getElementById("password").value;
-
         const { error } =
           await client.auth.signInWithPassword({
-            email,
-            password
+            email: document.getElementById("email").value,
+            password:
+              document.getElementById("password").value
           });
 
         message.textContent = error
-          ? "Accesso non riuscito. Controlla email e password."
+          ? "Email o password non corretta."
           : "";
 
         loginButton.disabled = false;
       });
 
+    document.getElementById("forgotButton")
+      .addEventListener("click", () => {
+        document.getElementById("recoveryEmail").value =
+          document.getElementById("email").value;
+        message.textContent = "";
+        showSection("recovery");
+      });
+
+    document.getElementById("backButton")
+      .addEventListener("click", () => {
+        message.textContent = "";
+        showSection("login");
+      });
+
+    document.getElementById("recoveryForm")
+      .addEventListener("submit", async event => {
+        event.preventDefault();
+
+        const button =
+          document.getElementById("recoveryButton");
+        button.disabled = true;
+        message.textContent = "Invio in corso...";
+
+        const { error } =
+          await client.auth.resetPasswordForEmail(
+            document.getElementById("recoveryEmail").value,
+            {
+              redirectTo:
+                "https://methodlab-cloud.vercel.app/"
+            }
+          );
+
+        message.textContent = error
+          ? "Invio non riuscito. Riprova più tardi."
+          : "Se l'account esiste, riceverai un'email con il link per reimpostare la password.";
+
+        button.disabled = false;
+      });
+
+    document.getElementById("passwordForm")
+      .addEventListener("submit", async event => {
+        event.preventDefault();
+
+        const button =
+          document.getElementById("savePasswordButton");
+        button.disabled = true;
+        message.textContent = "Salvataggio in corso...";
+
+        const { error } =
+          await client.auth.updateUser({
+            password:
+              document.getElementById("newPasswordInput").value
+          });
+
+        if (error) {
+          message.textContent =
+            "Impossibile aggiornare la password: " +
+            error.message;
+        } else {
+          recovering = false;
+          await client.auth.signOut();
+          showSection("login");
+          message.textContent =
+            "Password aggiornata. Ora puoi accedere.";
+        }
+
+        button.disabled = false;
+      });
+
     document.getElementById("logoutButton")
       .addEventListener("click", async () => {
         await client.auth.signOut();
-        showUser(null);
+        showSection("login");
         message.textContent = "";
       });
   </script>
